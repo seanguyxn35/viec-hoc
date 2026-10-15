@@ -2,8 +2,10 @@
 
 # Quy tắc dự án "Việc học của tôi"
 
-Dự án thực hành IE104. Hiện đang ở **bài thực hành 1**: chỉ dựng giao diện,
-dữ liệu là tạm trong state. Giữ nguyên các quy tắc dưới đây giữa các phiên.
+Dự án thực hành IE104. Bài 1 (giao diện, dữ liệu tạm) đã xong ở commit
+"Finish lab 1 frontend". Hiện đang ở **bài thực hành 2**: lưu dữ liệu thật ở
+Supabase, đăng nhập thật, API, kiểm thử và deploy Vercel trên cùng dự án này.
+Giữ nguyên các quy tắc dưới đây giữa các phiên.
 
 ## Kiến trúc
 
@@ -13,15 +15,29 @@ dữ liệu là tạm trong state. Giữ nguyên các quy tắc dưới đây gi
   Không tạo `tailwind.config.js`.
 - Component có tương tác phải khai báo `"use client"`.
 
-## Phạm vi bài 1 (quan trọng)
+## Phạm vi bài 2 (quan trọng)
 
-- **Chưa có database, chưa có đăng nhập thật.** Dữ liệu nằm trong React state
-  của `TaskDashboard`; tải lại trang thì về danh sách mẫu. Đây là hành vi dự kiến.
-- **Không biến form login mẫu thành xác thực giả.** Nút Đăng nhập đang bị vô
-  hiệu hóa và trang nói rõ điều đó. Không lưu hay gửi mật khẩu đi đâu.
-- Không dùng `localStorage` và chưa gọi API ở bài này.
-- Supabase, API `/api/tasks`, RLS và Playwright thuộc bài 2. Phần đã làm thử
-  được giữ ở nhánh `bai-2-da-lam`, không trộn vào `master`.
+- **Luồng thống nhất:** Supabase Auth chạy ở trình duyệt; frontend gửi access
+  token qua header `Authorization: Bearer <token>` đến API `/api/tasks`. Backend
+  xác minh token bằng `auth.getUser(token)` rồi truy vấn Supabase bằng chính
+  token đó để RLS có hiệu lực. Không trộn thêm cookie SSR.
+- **Phân quyền:** bảng `tasks` bật RLS với 4 chính sách đọc/thêm/sửa/xóa theo
+  `auth.uid() = user_id`. Không tắt RLS để vượt lỗi.
+- **Không dùng `service_role`/secret key** trong code web. Chỉ dùng hai biến
+  `NEXT_PUBLIC_SUPABASE_URL` và `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+- **Không nhận `user_id` từ form** làm bằng chứng danh tính; chủ sở hữu luôn
+  lấy từ `user.id` của token đã xác minh.
+- **Không truy vấn bảng `tasks` trực tiếp ở frontend**; mọi CRUD đi qua API.
+  Chỉ cập nhật giao diện là "đã lưu" sau khi API trả thành công; không giữ dữ
+  liệu mock làm dự phòng khi API lỗi.
+- Không dùng `localStorage` để lưu công việc.
+
+## Bí mật và biến môi trường
+
+- Không đọc, in hay sửa `.env.local`. Tên biến lấy từ `.env.example`.
+- Không ghi mật khẩu, access token hay key vào log, README, test output hoặc
+  commit. Biến test (`TEST_EMAIL_A`, `TEST_PASSWORD_A`, ...) chỉ nằm trong
+  `.env.local`, không có tiền tố `NEXT_PUBLIC_`.
 
 ## Thiết kế
 
@@ -36,5 +52,8 @@ dữ liệu là tạm trong state. Giữ nguyên các quy tắc dưới đây gi
 ## Sau mỗi thay đổi
 
 - Nêu rõ cách kiểm tra lại (lệnh nào, trang nào, thao tác nào).
-- Chạy `npx eslint .`, `npx tsc --noEmit`, `npm run build` trước khi kết luận
+- Chạy `npx eslint .`, `npm run typecheck`, `npm run build` trước khi kết luận
   hoàn thành. Build thành công không thay thế kiểm tra thao tác trên trình duyệt.
+- Kiểm tra kiểu dùng `npm run typecheck` (chạy `next typegen` trước
+  `tsc --noEmit`). Gọi thẳng `npx tsc --noEmit` khi chưa có `.next/types` sẽ báo
+  lỗi giả `Cannot find name 'LayoutProps'`.

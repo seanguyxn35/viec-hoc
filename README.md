@@ -85,7 +85,6 @@ Một vài chỗ cố tình khác bản Stitch, lý do nêu rõ để đối chi
 
 ## Phần bài 2
 
-Thư mục này **chỉ gồm phạm vi bài 1**: không có Supabase, không có API và không
-có kiểm thử tự động. Bản thử của bài 2 (Supabase Auth, API `/api/tasks`, RLS,
-Playwright) được giữ riêng trong repository Git của dự án ở nhánh
-`bai-2-da-lam`, không nằm trong bản nộp này.
+Bài 2 đang thực hiện trên cùng dự án này. Trạng thái hoàn thành bài 1 được lưu
+ở commit `Finish lab 1 frontend`. Hướng dẫn tạo Supabase, cấu hình biến môi
+trường, chạy kiểm thử và deploy sẽ được bổ sung khi hoàn thành bài 2.
