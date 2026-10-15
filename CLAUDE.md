@@ -32,6 +32,15 @@ Giữ nguyên các quy tắc dưới đây giữa các phiên.
   liệu mock làm dự phòng khi API lỗi.
 - Không dùng `localStorage` để lưu công việc.
 
+## Tệp chính của bài 2
+
+- `supabase/schema.sql`: bảng `tasks` + RLS (chạy trong SQL Editor, không xóa bảng để chạy lại).
+- `src/lib/supabase-browser.ts` (client), `src/lib/api-client.ts` (`apiFetch`).
+- `src/lib/auth-request.ts`, `src/lib/api-response.ts`: chỉ dùng phía server.
+- `src/app/api/tasks/route.ts` (GET, POST), `src/app/api/tasks/[id]/route.ts` (PATCH, DELETE).
+- `tests/*.spec.ts` + `playwright.config.ts`: chạy `npm run test:e2e`; không
+  làm yếu assertion hay bỏ test để báo pass. Kết quả ghi ở `docs/test-results.md`.
+
 ## Bí mật và biến môi trường
 
 - Không đọc, in hay sửa `.env.local`. Tên biến lấy từ `.env.example`.

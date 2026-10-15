@@ -1,17 +1,87 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { isAuthError } from "@supabase/supabase-js";
 import Icon from "./Icon";
+import {
+  getSupabase,
+  MissingSupabaseConfigError,
+} from "@/lib/supabase-browser";
 
 /*
-  BÀI 1: đây chỉ là GIAO DIỆN form đăng nhập.
-  Không có xác thực thật, không lưu và không gửi mật khẩu đi đâu.
-  Bài 2 sẽ thay phần này bằng Supabase Auth.
+  Đăng nhập thật bằng Supabase Auth (email + mật khẩu).
+  Mật khẩu chỉ gửi tới Supabase qua signInWithPassword, không lưu hay ghi log ở đâu khác.
 */
+function loginErrorMessage(error: unknown): string {
+  if (error instanceof MissingSupabaseConfigError) {
+    return "Website chưa được cấu hình kết nối Supabase. Kiểm tra biến môi trường.";
+  }
+  if (isAuthError(error)) {
+    if (error.code === "invalid_credentials") {
+      return "Email hoặc mật khẩu không đúng.";
+    }
+    if (error.code === "email_not_confirmed") {
+      return "Tài khoản chưa xác nhận email.";
+    }
+    if (error.status === 429 || error.code === "over_request_rate_limit") {
+      return "Bạn thử đăng nhập quá nhiều lần. Vui lòng đợi một lát.";
+    }
+    if (!error.status) {
+      return "Không kết nối được máy chủ. Kiểm tra mạng và thử lại.";
+    }
+  }
+  return "Đăng nhập không thành công. Vui lòng thử lại.";
+}
+
 export default function LoginForm() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Đã có phiên đăng nhập thì không cần đăng nhập lại.
+  useEffect(() => {
+    let cancelled = false;
+    try {
+      getSupabase()
+        .auth.getSession()
+        .then(({ data }) => {
+          if (!cancelled && data.session) router.replace("/tasks");
+        });
+    } catch {
+      // Thiếu cấu hình: lỗi sẽ hiện khi người dùng bấm Đăng nhập.
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (submitting) return;
+    if (!email.trim() || !password) {
+      setError("Vui lòng nhập email và mật khẩu.");
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+    try {
+      const { error: signInError } = await getSupabase().auth.signInWithPassword(
+        { email: email.trim(), password },
+      );
+      if (signInError) throw signInError;
+      setPassword("");
+      router.replace("/tasks");
+    } catch (caught) {
+      setError(loginErrorMessage(caught));
+      setSubmitting(false);
+    }
+  }
 
   return (
     <div className="relative flex w-full flex-col items-center justify-center">
@@ -50,9 +120,8 @@ export default function LoginForm() {
         </div>
 
         <form
-          // Bài 1 chưa xử lý đăng nhập: chặn submit để trang không tải lại
-          // và để không ai nhầm đây là xác thực thật.
-          onSubmit={(event) => event.preventDefault()}
+          onSubmit={handleSubmit}
+          noValidate
           className="mt-space-lg flex flex-col gap-space-md"
         >
           <div className="flex flex-col gap-1.5">
@@ -71,9 +140,17 @@ export default function LoginForm() {
                 id="email"
                 name="email"
                 type="email"
-                autoComplete="off"
+                autoComplete="email"
                 placeholder="Nhập email của bạn"
-                className="w-full rounded-lg bg-surface-container-low py-2.5 pl-11 pr-4 text-body-md text-on-surface outline-none transition-all duration-200 placeholder:text-outline focus:bg-surface-container-lowest"
+                value={email}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  if (error) setError(null);
+                }}
+                disabled={submitting}
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? "login-error" : undefined}
+                className="w-full rounded-lg bg-surface-container-low py-2.5 pl-11 pr-4 text-body-md text-on-surface outline-none transition-all duration-200 placeholder:text-outline focus:bg-surface-container-lowest disabled:opacity-70"
               />
             </div>
           </div>
@@ -86,14 +163,21 @@ export default function LoginForm() {
               <span className="pointer-events-none absolute left-3.5 select-none text-outline">
                 <Icon name="lock" size={20} />
               </span>
-              {/* Không controlled, không state: giá trị không được giữ lại ở đâu cả. */}
               <input
                 id="password"
                 name="password"
                 type={showPassword ? "text" : "password"}
-                autoComplete="off"
-                placeholder="Không nhập mật khẩu thật ở bài 1"
-                className="w-full rounded-lg bg-surface-container-low py-2.5 pl-11 pr-12 text-body-md text-on-surface outline-none transition-all duration-200 placeholder:text-outline focus:bg-surface-container-lowest"
+                autoComplete="current-password"
+                placeholder="Nhập mật khẩu"
+                value={password}
+                onChange={(event) => {
+                  setPassword(event.target.value);
+                  if (error) setError(null);
+                }}
+                disabled={submitting}
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? "login-error" : undefined}
+                className="w-full rounded-lg bg-surface-container-low py-2.5 pl-11 pr-12 text-body-md text-on-surface outline-none transition-all duration-200 placeholder:text-outline focus:bg-surface-container-lowest disabled:opacity-70"
               />
               <button
                 type="button"
@@ -109,34 +193,33 @@ export default function LoginForm() {
             </div>
           </div>
 
-          <p className="flex items-start gap-space-xs rounded-lg bg-surface-container-low px-space-md py-space-sm text-body-sm text-on-surface-variant">
-            <span className="mt-0.5 shrink-0 text-primary">
-              <Icon name="error_outline" size={18} />
-            </span>
-            <span>
-              Bài 1 mới dựng giao diện. Nút Đăng nhập chưa hoạt động và chưa có
-              tài khoản thật — Supabase Auth sẽ được thêm ở bài 2.
-            </span>
-          </p>
+          {error ? (
+            <p
+              id="login-error"
+              role="alert"
+              className="flex items-start gap-space-xs rounded-lg bg-error-container px-space-md py-space-sm text-body-sm text-on-error-container"
+            >
+              <span className="mt-0.5 shrink-0">
+                <Icon name="error_outline" size={18} />
+              </span>
+              <span>{error}</span>
+            </p>
+          ) : null}
 
           <div className="pt-1">
             <button
               type="submit"
-              disabled
-              className="group flex h-11 w-full cursor-not-allowed items-center justify-center gap-2 rounded-lg bg-surface-container-highest text-label-md text-outline shadow-sm"
+              disabled={submitting}
+              className="group flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary text-label-md text-on-primary shadow-sm transition-all duration-150 hover:bg-primary-container active:scale-[0.99] disabled:cursor-wait disabled:opacity-70"
             >
-              <span>Đăng nhập</span>
-              <Icon name="arrow_forward" size={18} />
+              <span>{submitting ? "Đang đăng nhập..." : "Đăng nhập"}</span>
+              <Icon
+                name={submitting ? "spinner" : "arrow_forward"}
+                size={18}
+                className={submitting ? "animate-spin" : undefined}
+              />
             </button>
           </div>
-
-          <Link
-            href="/tasks"
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary text-label-md text-on-primary shadow-sm transition-all duration-150 hover:bg-primary-container active:scale-[0.99]"
-          >
-            <span>Xem giao diện công việc</span>
-            <Icon name="arrow_forward" size={18} />
-          </Link>
         </form>
 
         <div className="mt-space-lg flex flex-col items-center gap-space-xs pt-space-md text-center">
