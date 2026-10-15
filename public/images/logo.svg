@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="Việc học của tôi">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#004ac6"/>
+    </linearGradient>
+  </defs>
+  <rect width="48" height="48" rx="12" fill="url(#g)"/>
+  <path d="M11 14.5c3.6-1.2 7.4-1.2 11 0v19c-3.6-1.2-7.4-1.2-11 0v-19Z" fill="#ffffff" opacity=".92"/>
+  <path d="M37 14.5c-3.6-1.2-7.4-1.2-11 0v19c3.6-1.2 7.4-1.2 11 0v-19Z" fill="#ffffff" opacity=".7"/>
+  <path d="M29.5 22.5l2.4 2.4 5-5" fill="none" stroke="#6cf8bb" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
